@@ -1,0 +1,139 @@
+﻿/*
+This program is an implementation of the Term Rewriting Language, or TRL. 
+In that sense it is also a specification for TRL by giving a reference
+implementation. It contains a parser and interpreter.
+
+Copyright (C) 2012 Wikus Coetser, 
+Contact information on my blog: http://coffeesmudge.blogspot.com/
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, version 3 of the License.
+
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Collections;
+using System.Numerics;
+
+namespace Interpreter.Execution
+{
+  /// <summary>
+  /// Generates all possible mappings between two sets, partisioning the second set 
+  /// and mapping elements from the first set to each partition.
+  /// </summary>
+  /// <typeparam name="TFromSet">The first set from which elements are mapped. One partition is assigned to each element from this set.</typeparam>
+  /// <typeparam name="TToSet">The "to" set which is mapped to the first set. This is the set being partitioned. (ie. the returned sets are mutually exclusive)</typeparam>  
+  public class SetMapPartitionEnumerator<TFromSet, TToSet> : IEnumerable<List<SetPartitionMapping<TFromSet, TToSet>>>
+  {
+    // Source sets
+    private readonly HashSet<TFromSet> from;
+    private readonly HashSet<TToSet> to;
+
+    public SetMapPartitionEnumerator(HashSet<TFromSet> from, HashSet<TToSet> to)
+    {
+      if (to.Count < from.Count) throw new ArgumentException("'from''s cardinality must be <= to 'to'");
+      if (from.Count == 0 || to.Count == 0) throw new ArgumentException("'from' and 'to' sets must contain at least one element to generate mappings");
+      this.from = from;
+      this.to = to;
+    }
+
+    public IEnumerator<List<SetPartitionMapping<TFromSet, TToSet>>> GetEnumerator()
+    {
+      // Initial conditions      
+      if (from.Count == 1)
+      {
+        yield return new List<SetPartitionMapping<TFromSet, TToSet>> 
+        { 
+          new SetPartitionMapping<TFromSet, TToSet> 
+          {
+            FromElement = from.First(),
+            ToPartition = to
+          }
+        };
+        yield break;
+      }
+      else
+      {
+        // Inductive step ...
+        // Represent sets are binary strings, with the 1's representing the first "from" element
+        // and 0's as the rest, which is in themselfes recusively subdevided are binary strings
+        if (64 <= to.Count) throw new Exception("Main program loop will exceed " + ulong.MaxValue + " iterations, consider making 'to' partition set smaller");
+        var indexedToSet = to.ToList();
+        var uMax = ((ulong)1 << to.Count) - 2;
+        for (ulong partitionIndex = 1; partitionIndex <= uMax; partitionIndex++) // sets consisting of just 1s and 0s are excluded recursively
+        {
+          var currFrom = from.First();
+          var remainderFrom = new HashSet<TFromSet>(from.Skip(1));
+          var currPartitionElements = new HashSet<TToSet>();
+          var remainderPartitionElements = new HashSet<TToSet>();
+          var currBinString = partitionIndex;
+          // Read binary string for this iteration to devide into partitions
+          for (int toIndex = 0; toIndex < indexedToSet.Count; toIndex++)
+          {
+            if (currBinString % 2 == 0) remainderPartitionElements.Add(indexedToSet[toIndex]);
+            else currPartitionElements.Add(indexedToSet[toIndex]);
+            currBinString = currBinString / 2;
+          }
+          // The existence of this if-statement "wastes" a lot of clock cycles in terms of partitionIndex,
+          // maybe there is a way to skip these ... at least we can prune away invalid subpartitions at 
+          // an early stage.
+          if (remainderFrom.Count > remainderPartitionElements.Count) continue;
+          // Expand the rest
+          var currentMapping = new SetPartitionMapping<TFromSet, TToSet>
+          {
+            FromElement = currFrom,
+            ToPartition = currPartitionElements
+          };
+          foreach (var subSetExpantion in new SetMapPartitionEnumerator<TFromSet, TToSet>(remainderFrom, remainderPartitionElements))
+          {
+            var subList = new List<SetPartitionMapping<TFromSet, TToSet>> { currentMapping };
+            subList.AddRange(subSetExpantion);
+            yield return subList;
+          }
+        }
+      }
+    }
+
+    IEnumerator IEnumerable.GetEnumerator()
+    {
+      return GetEnumerator();
+    }
+  }
+
+  /// <summary>
+  /// Represents one mapping generated by the SetMapPartitionEnumerator class
+  /// </summary>
+  public class SetPartitionMapping<TFromSet, TToSet>
+  {
+    public TFromSet FromElement { get; set; }
+
+    public HashSet<TToSet> ToPartition { get; set; }
+
+    public override string ToString()
+    {
+      StringBuilder sb = new StringBuilder();
+      sb.Append(FromElement.ToString());
+      sb.Append(" => {");
+      sb.Append(ToPartition.First().ToString());
+      foreach (var ce in ToPartition.Skip(1)) 
+      {
+        sb.Append(", ");
+        sb.Append(ce.ToString());
+      }
+      sb.Append("}");
+      return sb.ToString();
+    }
+  }
+}

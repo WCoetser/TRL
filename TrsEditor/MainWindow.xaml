@@ -1,0 +1,66 @@
+﻿<!--
+  /*
+This program is an implementation of the Term Rewriting Language, or TRL. 
+In that sense it is also a specification for TRL by giving a reference
+implementation. It contains a parser and interpreter.
+
+Copyright (C) 2012 Wikus Coetser, 
+Contact information on my blog: http://coffeesmudge.blogspot.com/
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, version 3 of the License.
+
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/  
+  -->
+  
+  <Window x:Class="TrsEditor.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Height="600" Width="800"
+        Title="Term Rewriting System"
+        Loaded="WindowLoaded">
+  <Grid>
+    <Grid.RowDefinitions>
+      <RowDefinition Height="20"/>
+      <RowDefinition Height="30"/>
+      <RowDefinition Height="20"/>
+      <RowDefinition Height="*"/>
+      <RowDefinition Height="20"/>
+    </Grid.RowDefinitions>
+    <Grid.ColumnDefinitions>
+      <ColumnDefinition Width="20" />
+      <ColumnDefinition Width="*" />
+      <ColumnDefinition Width="20" />
+    </Grid.ColumnDefinitions>
+    <TextBox AcceptsReturn="True" 
+             ScrollViewer.VerticalScrollBarVisibility="Visible" 
+             ScrollViewer.HorizontalScrollBarVisibility="Auto"
+             FontFamily="Courier New"
+             FontSize="14"
+             Grid.Row="3"
+             Grid.Column="1"
+             x:Name="txtCode"
+             Text="{Binding ProgramBlock}"/>
+    <StackPanel Grid.Row="1" Grid.Column="1" Orientation="Horizontal">
+      <Button Width="250px" Click="ButtonClick">Execute Rewrite Step</Button>
+      <Label Margin="10,0,10,0">Undo</Label>
+      <Slider x:Name="sldRedoUndoSlider" 
+              Width="300" 
+              Minimum="0" 
+              IsSnapToTickEnabled="True" 
+              Maximum="{Binding MaxUndoValue}"
+              Value="{Binding RedoUndoPosition}"></Slider>
+      <Label Margin="10,0,10,0">Redo</Label>
+    </StackPanel>
+  </Grid>
+
+</Window>
